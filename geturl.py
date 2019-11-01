@@ -23,7 +23,7 @@
 
 from flask import Flask,render_template,request,jsonify,redirect,url_for
 
-
+import os
 import webbrowser
 import sys
 import pyperclip
@@ -47,7 +47,7 @@ def start():
 		# search for the keyword copied in the clipboard
 		keyword = pyperclip.paste()
 	key=request.form.get('search')
-	res = requests.get(key)
+	res = requests.get('https://google.com/search?q='+key)
 	res.raise_for_status()
 	soup = bs4.BeautifulSoup(res.text,'html.parser')
 	links = soup.select('div#main > div > div > div > a')
@@ -61,18 +61,24 @@ def start():
 		# chrome_path = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
 		# webbrowser.register('chrome', 1,webbrowser.BackgroundBrowser(chrome_path))
 		# webbrowser.get('chrome').open_new_tab('https://google.com' + links[i].get('href'))
-		List.append(links[i].get('href'))
+		List.append('https://google.com'+links[i].get('href'))
 	#session['my_list'] = List
-	r=requests.post('http://127.0.0.1:5000/download',json={'Result':List})
-    return r.text
+	r=requests.post('http://127.0.0.1:5000/download',json = {'key': key, 'Result':List})
+	return r.text
 	#return jsonify({'keyword':key,'Result':List})
 	#return redirect(url_for('download'))
 
-@app.route('/download' , method=['POST'])
+@app.route('/download' , methods = ['POST'])
 def download():
 	res=request.get_json()
 	config = pdfkit.configuration(wkhtmltopdf = "C:\\Program Files\\wkhtmltox\\bin\\wkhtmltopdf.exe")
-	pdfkit.from_url(res[Result][3],"yy.pdf",configuration=config)
+	#pdfkit.from_url(res['Result'][2],res['key']+str(9)+".pdf",configuration=config)
+	#i=5
+	path_new=os.getcwd()+'/'+res['key']
+	if os.path.isdir(path_new)==False:
+		os.mkdir(path_new)
+	for i in range(2,6):
+		pdfkit.from_url(res['Result'][i],res['key']+'/'+res['key']+str(i)+".pdf",configuration=config)
 	# i=0;
 	# for item in session.pop('my_list', [])
 	# 	pdfkit.from_url(item,"abc"+(i++)+".pdf",configuration=config)
