@@ -21,7 +21,7 @@
 # linkToOpen = min(5, len(linkElements))
 #for i in range(linkToOpen):
 
-from flask import Flask,render_template,request,jsonify
+from flask import Flask,render_template,request,jsonify,redirect,url_for
 
 
 import webbrowser
@@ -29,9 +29,10 @@ import sys
 import pyperclip
 import requests
 import bs4
+import pdfkit
 
 
-app = Flask(__name__)
+app = Flask(__name__,  static_url_path='/static')
 
 @app.route("/")
 def home():
@@ -46,7 +47,7 @@ def start():
 		# search for the keyword copied in the clipboard
 		keyword = pyperclip.paste()
 	key=request.form.get('search')
-	res = requests.get('https://google.com/search?q='+key)
+	res = requests.get(key)
 	res.raise_for_status()
 	soup = bs4.BeautifulSoup(res.text,'html.parser')
 	links = soup.select('div#main > div > div > div > a')
@@ -60,8 +61,23 @@ def start():
 		# chrome_path = "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
 		# webbrowser.register('chrome', 1,webbrowser.BackgroundBrowser(chrome_path))
 		# webbrowser.get('chrome').open_new_tab('https://google.com' + links[i].get('href'))
-		List.append('https://google.com' + links[i].get('href'))
-	return jsonify({'keyword':key,'Result':List})
+		List.append(links[i].get('href'))
+	#session['my_list'] = List
+	r=requests.post('http://127.0.0.1:5000/download',json={'Result':List})
+    return r.text
+	#return jsonify({'keyword':key,'Result':List})
+	#return redirect(url_for('download'))
+
+@app.route('/download' , method=['POST'])
+def download():
+	res=request.get_json()
+	config = pdfkit.configuration(wkhtmltopdf = "C:\\Program Files\\wkhtmltox\\bin\\wkhtmltopdf.exe")
+	pdfkit.from_url(res[Result][3],"yy.pdf",configuration=config)
+	# i=0;
+	# for item in session.pop('my_list', [])
+	# 	pdfkit.from_url(item,"abc"+(i++)+".pdf",configuration=config)
+	# endfor
+	return "True"
 
 #yahoo.in https://in.search.yahoo.com/search?p=
 #bing.com https://www.bing.com/search?q=
@@ -72,6 +88,7 @@ def start():
 #archieve.org https://archive.org/search.php?query=
 
 #start()
+
 	
 if __name__ == '__main__':
 	app.run(debug = "true")
